@@ -2,7 +2,7 @@
   "name": "bitbrowser-puppeteer-integration",
   "version": "1.0.0",
   "type": "module",
-  "description": "比特浏览器与 puppeteer-real-browser 集成",
+  "description": "bitbrowser with puppeteer-real-browser ",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
