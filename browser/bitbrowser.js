@@ -1,8 +1,21 @@
 import axios from 'axios';
 import { createLogger, format, transports } from 'winston';
-import { BITBROWSER_CONFIG, LOGGER_CONFIG } from '../config/config.js';
+import { BITBROWSER_CONFIG, LOGGER_CONFIG, TEMP_FILES_CONFIG } from '../config/config.js';
+import fse from 'fs-extra';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-// 配置日志
+// 获取当前文件路径
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// 临时文件目录
+const TEMP_DIR = join(__dirname, '../temp');
+
+// 确保临时目录存在
+fse.ensureDirSync(TEMP_DIR);
+
+// 配置带颜色的日志
 const logger = createLogger({
   level: LOGGER_CONFIG.level,
   format: format.combine(
@@ -11,6 +24,25 @@ const logger = createLogger({
   ),
   transports: [new transports.Console()]
 });
+
+/**
+ * 验证API响应是否成功
+ * @param {Object} response - API响应
+ * @param {string} operation - 操作名称，用于日志
+ * @returns {Object} - 响应数据
+ * @throws {Error} - 如果响应不成功或格式不正确
+ */
+function validateResponse(response, operation) {
+  if (!response || !response.data) {
+    throw new Error(`Invalid response format from ${operation} API`);
+  }
+  
+  if (!response.data.success) {
+    throw new Error(`API request failed: ${response.data.message || 'Unknown error'}`);
+  }
+  
+  return response.data;
+}
 
 /**
  * 创建比特浏览器
@@ -42,24 +74,27 @@ async function createBrowser(options = {}) {
       browserFingerPrint: options.browserFingerPrint || { coreVersion: '124' }
     };
 
+    logger.debug(`Sending create browser request: ${JSON.stringify(jsonData)}`);
+    
     const response = await axios.post(
       `${BITBROWSER_CONFIG.url}/browser/update`,
       JSON.stringify(jsonData),
       { headers: BITBROWSER_CONFIG.headers }
     );
 
-    const res = response.data;
-    logger.info(`createBrowser: ${JSON.stringify(res)}`);
+    // 验证响应
+    const res = validateResponse(response, 'create browser');
     
-    if (!res.success) {
-      throw new Error(`Failed to create browser: ${res.message}`);
-    }
+    logger.info(`Browser created successfully: ${JSON.stringify(res)}`);
     
     const browserId = res.data.id;
-    logger.info(`Browser created with ID: ${browserId}`);
+    logger.info(`Browser ID: ${browserId}`);
     return browserId;
   } catch (error) {
-    logger.error(`Error in createBrowser: ${error.message}`);
+    logger.error(`Error in createBrowser: ${error.message}`, {
+      stack: error.stack,
+      location: 'bitbrowser.js:createBrowser'
+    });
     throw error;
   }
 }
@@ -73,22 +108,25 @@ async function openBrowser(browserId) {
   try {
     const jsonData = { id: browserId };
     
+    logger.debug(`Sending open browser request: ${JSON.stringify(jsonData)}`);
+    
     const response = await axios.post(
       `${BITBROWSER_CONFIG.url}/browser/open`,
       JSON.stringify(jsonData),
       { headers: BITBROWSER_CONFIG.headers }
     );
 
-    const res = response.data;
-    logger.info(`openBrowser: ${JSON.stringify(res)}`);
+    // 验证响应
+    const res = validateResponse(response, 'open browser');
     
-    if (!res.success) {
-      throw new Error(`Failed to open browser: ${res.message}`);
-    }
+    logger.info(`Browser opened successfully: ${JSON.stringify(res)}`);
     
     return res;
   } catch (error) {
-    logger.error(`Error in openBrowser: ${error.message}`);
+    logger.error(`Error in openBrowser: ${error.message}`, {
+      stack: error.stack,
+      location: 'bitbrowser.js:openBrowser'
+    });
     throw error;
   }
 }
@@ -102,22 +140,25 @@ async function closeBrowser(browserId) {
   try {
     const jsonData = { id: browserId };
     
+    logger.debug(`Sending close browser request: ${JSON.stringify(jsonData)}`);
+    
     const response = await axios.post(
       `${BITBROWSER_CONFIG.url}/browser/close`,
       JSON.stringify(jsonData),
       { headers: BITBROWSER_CONFIG.headers }
     );
 
-    const res = response.data;
-    logger.info(`closeBrowser: ${JSON.stringify(res)}`);
+    // 验证响应
+    const res = validateResponse(response, 'close browser');
     
-    if (!res.success) {
-      throw new Error(`Failed to close browser: ${res.message}`);
-    }
+    logger.info(`Browser closed successfully: ${JSON.stringify(res)}`);
     
     return res;
   } catch (error) {
-    logger.error(`Error in closeBrowser: ${error.message}`);
+    logger.error(`Error in closeBrowser: ${error.message}`, {
+      stack: error.stack,
+      location: 'bitbrowser.js:closeBrowser'
+    });
     throw error;
   }
 }
@@ -131,22 +172,25 @@ async function deleteBrowser(browserId) {
   try {
     const jsonData = { id: browserId };
     
+    logger.debug(`Sending delete browser request: ${JSON.stringify(jsonData)}`);
+    
     const response = await axios.post(
       `${BITBROWSER_CONFIG.url}/browser/delete`,
       JSON.stringify(jsonData),
       { headers: BITBROWSER_CONFIG.headers }
     );
 
-    const res = response.data;
-    logger.info(`deleteBrowser: ${JSON.stringify(res)}`);
+    // 验证响应
+    const res = validateResponse(response, 'delete browser');
     
-    if (!res.success) {
-      throw new Error(`Failed to delete browser: ${res.message}`);
-    }
+    logger.info(`Browser deleted successfully: ${JSON.stringify(res)}`);
     
     return res;
   } catch (error) {
-    logger.error(`Error in deleteBrowser: ${error.message}`);
+    logger.error(`Error in deleteBrowser: ${error.message}`, {
+      stack: error.stack,
+      location: 'bitbrowser.js:deleteBrowser'
+    });
     throw error;
   }
 }
@@ -178,22 +222,25 @@ async function updateBrowser(options) {
       }
     });
 
+    logger.debug(`Sending update browser request: ${JSON.stringify(jsonData)}`);
+    
     const response = await axios.post(
       `${BITBROWSER_CONFIG.url}/browser/update/partial`,
       JSON.stringify(jsonData),
       { headers: BITBROWSER_CONFIG.headers }
     );
 
-    const res = response.data;
-    logger.info(`updateBrowser: ${JSON.stringify(res)}`);
+    // 验证响应
+    const res = validateResponse(response, 'update browser');
     
-    if (!res.success) {
-      throw new Error(`Failed to update browser: ${res.message}`);
-    }
+    logger.info(`Browser updated successfully: ${JSON.stringify(res)}`);
     
     return res;
   } catch (error) {
-    logger.error(`Error in updateBrowser: ${error.message}`);
+    logger.error(`Error in updateBrowser: ${error.message}`, {
+      stack: error.stack,
+      location: 'bitbrowser.js:updateBrowser'
+    });
     throw error;
   }
 }
@@ -207,17 +254,100 @@ async function getBrowserDebugInfo(browserId) {
   try {
     const res = await openBrowser(browserId);
     
-    if (!res.success) {
-      logger.error(`Failed to open browser: ${browserId}`);
-      return null;
+    // 验证响应数据
+    if (!res || !res.data) {
+      throw new Error('Invalid response data from open browser API');
     }
     
-    return {
-      driverPath: res.data.driver,
-      debuggerAddress: res.data.http
+    // 检查必要的字段是否存在
+    if (!res.data.http) {
+      throw new Error('Browser debug information is incomplete (missing http endpoint)');
+    }
+    
+    // 确保WebSocket URL格式正确（添加ws://前缀）
+    let debuggerAddress = res.data.http;
+    if (!debuggerAddress.startsWith('ws://') && !debuggerAddress.startsWith('wss://')) {
+      debuggerAddress = `ws://${debuggerAddress}`;
+      logger.info(`Added 'ws://' prefix to debugger address: ${debuggerAddress}`);
+    }
+    
+    // 尝试通过HTTP端点获取WebSocket调试URL
+    try {
+      const wsDebugUrlResponse = await axios.get(`http://${res.data.http}/json/version`);
+      const wsDebugUrl = wsDebugUrlResponse.data.webSocketDebuggerUrl;
+      
+      if (wsDebugUrl) {
+        debuggerAddress = wsDebugUrl;
+        logger.info(`Successfully retrieved WebSocket debugger URL: ${debuggerAddress}`);
+      } else {
+        logger.warn('Failed to retrieve WebSocket debugger URL, using default endpoint');
+      }
+    } catch (httpError) {
+      logger.warn(`Error fetching WebSocket debugger URL: ${httpError.message}`);
+      logger.warn('Using default WebSocket endpoint');
+    }
+    
+    const debugInfo = {
+      driverPath: res.data.driver || '',
+      debuggerAddress,
+      chromePort: debuggerAddress.split(':')[2] // 提取端口号
     };
+    
+    // 保存调试信息到临时文件
+    const debugInfoPath = join(__dirname, '../', TEMP_FILES_CONFIG.wsEndpointFilePath);
+    fse.writeJSONSync(debugInfoPath, debugInfo);
+    
+    logger.info(`Browser debug info saved to: ${debugInfoPath}`);
+    return debugInfo;
   } catch (error) {
-    logger.error(`Error getting browser debug info: ${error.message}`);
+    logger.error(`Error in getBrowserDebugInfo: ${error.message}`, {
+      stack: error.stack,
+      location: 'bitbrowser.js:getBrowserDebugInfo'
+    });
+    throw error;
+  }
+}
+
+/**
+ * 生成用于 puppeteer-real-browser 的配置
+ * @param {string} browserId - 浏览器ID
+ * @returns {Promise<Object>} - puppeteer-real-browser 配置
+ */
+async function generatePuppeteerRealBrowserConfig(browserId) {
+  try {
+    const debugInfo = await getBrowserDebugInfo(browserId);
+    
+    // 验证调试信息
+    if (!debugInfo || !debugInfo.debuggerAddress) {
+      throw new Error('Failed to get valid browser debug info');
+    }
+    
+    // 确保WebSocket URL格式正确
+    let wsEndpoint = debugInfo.debuggerAddress;
+    if (!wsEndpoint.startsWith('ws://') && !wsEndpoint.startsWith('wss://')) {
+      wsEndpoint = `ws://${wsEndpoint}`;
+      logger.info(`Added 'ws://' prefix to WebSocket endpoint: ${wsEndpoint}`);
+    }
+    
+    // 创建配置对象
+    const config = {
+      browserWSEndpoint: wsEndpoint,
+      browserURL: undefined, // 明确设置为undefined，确保只使用browserWSEndpoint
+      chromePort: debugInfo.chromePort,
+      executablePath: debugInfo.driverPath
+    };
+    
+    // 保存配置到临时文件
+    const configPath = join(__dirname, '../', TEMP_FILES_CONFIG.configFilePath);
+    fse.writeJSONSync(configPath, config);
+    
+    logger.info(`Puppeteer-real-browser config saved to: ${configPath}`);
+    return config;
+  } catch (error) {
+    logger.error(`Error in generatePuppeteerRealBrowserConfig: ${error.message}`, {
+      stack: error.stack,
+      location: 'bitbrowser.js:generatePuppeteerRealBrowserConfig'
+    });
     throw error;
   }
 }
@@ -228,5 +358,6 @@ export {
   closeBrowser,
   deleteBrowser,
   updateBrowser,
-  getBrowserDebugInfo
+  getBrowserDebugInfo,
+  generatePuppeteerRealBrowserConfig
 };

@@ -26,7 +26,7 @@ async function main() {
     });
     
     // 2. 连接Puppeteer到比特浏览器
-    logger.info('Connecting Puppeteer to BitBrowser...');
+    logger.info('Connecting Puppeteer to BitBrowser using puppeteer-real-browser...');
     await puppeteerController.connectToBitBrowser(browserId, {
       headless: false, // 以有头模式运行，便于观察
       turnstile: true, // 处理Cloudflare Turnstile验证码
@@ -59,7 +59,7 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 5000));
     
     // 8. 关闭Puppeteer
-    logger.info('Closing Puppeteer...');
+    logger.info('Closing Puppeteer connection...');
     await puppeteerController.close();
     
     // 9. 关闭比特浏览器
@@ -76,7 +76,10 @@ async function main() {
     
     logger.info('All operations completed successfully!');
   } catch (error) {
-    logger.error(`An error occurred: ${error.message}`);
+    logger.error(`An error occurred: ${error.message}`, {
+      stack: error.stack,
+      location: 'index.js:main'
+    });
     process.exit(1);
   }
 }

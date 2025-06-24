@@ -16,7 +16,6 @@ export const LOGGER_CONFIG = {
     printf: (info) => {
       let message = `${info.timestamp} `;
       
-      // 根据日志级别添加不同颜色
       switch (info.level) {
         case 'error':
           message += chalk.red(`[${info.level.toUpperCase()}]`) + ' ' + chalk.red(info.message);
@@ -40,7 +39,7 @@ export const LOGGER_CONFIG = {
 };
 
 // Puppeteer-real-browser配置
-export const PUPPETEER_CONFIG = {
+export const PUPPETEER_REAL_BROWSER_CONFIG = {
   headless: false,
   args: ['--start-maximized'],
   turnstile: true,
@@ -48,4 +47,11 @@ export const PUPPETEER_CONFIG = {
   connectOption: {
     defaultViewport: null
   }
+};
+
+// 临时文件配置
+export const TEMP_FILES_CONFIG = {
+  configFilePath: './temp/config.json',
+  wsEndpointFilePath: './temp/wsEndpoint.json',
+  cleanupInterval: 60000 // 1分钟清理一次临时文件
 };
